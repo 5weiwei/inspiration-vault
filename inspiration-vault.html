@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>靈感 Vault</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap');
+
+:root {
+  --ink:#1a1814; --ink-soft:#4a4641; --ink-faint:#9a9490;
+  --paper:#f7f4ef; --paper-warm:#edeae3; --paper-deep:#e2ddd6;
+  --accent:#c17f4a; --accent-soft:#e8c99a;
+  --border:#d8d3ca; --tag-bg:#ede9e2;
+  --cols: 3;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:'Noto Sans JP',sans-serif;font-weight:300;min-height:100vh;}
+
+/* LOCK */
+#lockScreen{position:fixed;inset:0;background:var(--paper);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.lock-box{text-align:center;padding:48px 40px;max-width:360px;width:100%;}
+.lock-box h1{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;margin-bottom:6px;}
+.lock-box h1 em{font-style:italic;color:var(--accent);}
+.lock-box p{font-size:12px;color:var(--ink-faint);letter-spacing:.12em;margin-bottom:32px;}
+.lock-input{width:100%;padding:12px 16px;border:1px solid var(--border);background:var(--paper-warm);border-radius:4px;font-family:inherit;font-size:15px;text-align:center;letter-spacing:.2em;outline:none;transition:border-color .2s;}
+.lock-input:focus{border-color:var(--accent);}
+.lock-btn{margin-top:14px;width:100%;padding:11px;background:var(--ink);color:var(--paper);border:none;border-radius:4px;font-family:inherit;font-size:13px;letter-spacing:.1em;cursor:pointer;transition:background .15s;}
+.lock-btn:hover{background:var(--accent);}
+.lock-error{font-size:12px;color:#c0392b;margin-top:10px;min-height:18px;}
+.lock-hint{font-size:11px;color:var(--ink-faint);margin-top:20px;}
+
+/* HEADER */
+header{padding:40px 40px 28px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.header-left h1{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;letter-spacing:.02em;line-height:1;}
+.header-left h1 em{font-style:italic;color:var(--accent);}
+.header-left .subtitle{margin-top:5px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);}
+.header-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.btn-primary{padding:8px 18px;background:var(--ink);color:var(--paper);border:none;border-radius:4px;font-family:inherit;font-size:12px;letter-spacing:.08em;cursor:pointer;transition:background .15s;white-space:nowrap;}
+.btn-primary:hover{background:var(--accent);}
+.btn-ghost{padding:8px 14px;border:1px solid var(--border);background:transparent;border-radius:4px;font-family:inherit;font-size:12px;color:var(--ink-soft);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink);}
+
+/* TOOLBAR */
+.toolbar{padding:16px 40px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.search-wrap{flex:1;min-width:160px;position:relative;}
+.search-wrap input{width:100%;padding:8px 12px 8px 32px;border:1px solid var(--border);background:var(--paper-warm);border-radius:4px;font-family:inherit;font-size:13px;color:var(--ink);outline:none;transition:border-color .2s;}
+.search-wrap input:focus{border-color:var(--accent);}
+.search-wrap::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;pointer-events:none;}
+.filter-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.filter-tag{padding:5px 11px;border:1px solid var(--border);border-radius:20px;font-size:11px;letter-spacing:.06em;cursor:pointer;background:transparent;color:var(--ink-soft);font-family:inherit;transition:all .15s;}
+.filter-tag:hover,.filter-tag.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* COUNT */
+.count-bar{padding:10px 40px;font-size:11px;color:var(--ink-faint);letter-spacing:.1em;border-bottom:1px solid var(--border);}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:1px;background:var(--border);}
+
+/* CARD */
+.card{background:var(--paper);cursor:pointer;transition:background .15s;position:relative;display:flex;flex-direction:column;}
+.card:hover{background:var(--paper-warm);}
+.card-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;}
+.card-img-placeholder{width:100%;aspect-ratio:4/3;background:var(--paper-deep);display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--ink-faint);}
+.card-body{padding:20px 22px 18px;flex:1;display:flex;flex-direction:column;}
+.card-header{display:flex;align-items:flex-start;gap:11px;margin-bottom:12px;}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--paper-deep);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;overflow:hidden;}
+.avatar img{width:100%;height:100%;object-fit:cover;}
+.card-name{font-family:'DM Serif Display',serif;font-size:15px;font-weight:400;line-height:1.2;color:var(--ink);}
+.card-handle{font-size:11px;color:var(--ink-faint);letter-spacing:.06em;margin-top:1px;}
+.card-platform{font-size:10px;padding:2px 7px;border:1px solid var(--border);border-radius:10px;color:var(--ink-faint);display:inline-block;margin-top:3px;}
+.card-field{font-size:12px;line-height:1.7;color:var(--ink-soft);margin-bottom:10px;}
+.card-field-label{font-size:10px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+.card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;}
+.tag{font-size:10px;padding:2px 8px;background:var(--tag-bg);border-radius:10px;color:var(--ink-soft);letter-spacing:.04em;}
+.card-hook{font-size:11px;color:var(--accent);border-left:2px solid var(--accent-soft);padding-left:9px;line-height:1.6;font-style:italic;margin-top:auto;}
+.card-link-btn{display:inline-flex;align-items:center;gap:4px;margin-top:12px;font-size:11px;color:var(--accent);text-decoration:none;border:1px solid var(--accent-soft);border-radius:3px;padding:4px 10px;width:fit-content;transition:all .15s;}
+.card-link-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.card-actions{position:absolute;top:8px;right:8px;display:none;gap:4px;z-index:2;}
+.card:hover .card-actions{display:flex;}
+.btn-icon{width:26px;height:26px;border:1px solid var(--border);background:var(--paper);border-radius:3px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.btn-icon:hover{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+/* EMPTY */
+.empty{grid-column:1/-1;padding:80px 40px;text-align:center;color:var(--ink-faint);}
+.empty p:first-child{font-size:30px;margin-bottom:10px;}
+.empty p:last-child{font-size:13px;letter-spacing:.1em;}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(26,24,20,.55);z-index:100;align-items:center;justify-content:center;padding:16px;}
+.overlay.open{display:flex;}
+
+/* MODAL BASE */
+.modal-box{background:var(--paper);width:100%;max-height:92vh;overflow-y:auto;border-radius:6px;box-shadow:0 24px 60px rgba(0,0,0,.18);}
+.modal-box.sm{max-width:480px;}
+.modal-box.md{max-width:580px;}
+.modal-box.lg{max-width:660px;}
+.modal-head{padding:22px 28px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--paper);z-index:1;}
+.modal-head h2{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;}
+.modal-body{padding:22px 28px 28px;}
+.modal-foot{padding:14px 28px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.btn-cancel{padding:8px 16px;border:1px solid var(--border);background:transparent;border-radius:4px;font-family:inherit;font-size:12px;cursor:pointer;color:var(--ink-soft);transition:background .15s;}
+.btn-cancel:hover{background:var(--paper-deep);}
+.btn-save{padding:8px 22px;background:var(--ink);color:var(--paper);border:none;border-radius:4px;font-family:inherit;font-size:12px;letter-spacing:.08em;cursor:pointer;transition:background .15s;}
+.btn-save:hover{background:var(--accent);}
+
+/* FORM FIELDS */
+.form-row{margin-bottom:16px;}
+.form-row label{display:block;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:5px;}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:9px 11px;border:1px solid var(--border);background:var(--paper-warm);border-radius:4px;font-family:inherit;font-size:13px;color:var(--ink);outline:none;transition:border-color .2s;appearance:none;}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--accent);}
+.form-row textarea{resize:vertical;min-height:70px;line-height:1.6;}
+.form-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* IMG UPLOAD */
+.img-tabs{display:flex;margin-bottom:10px;}
+.img-tab{flex:1;padding:7px;font-size:11px;letter-spacing:.07em;border:1px solid var(--border);background:transparent;cursor:pointer;font-family:inherit;color:var(--ink-soft);transition:all .15s;}
+.img-tab:first-child{border-radius:4px 0 0 4px;}
+.img-tab:last-child{border-radius:0 4px 4px 0;border-left:none;}
+.img-tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.upload-area{border:1.5px dashed var(--border);border-radius:6px;padding:18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--paper-warm);position:relative;}
+.upload-area:hover{border-color:var(--accent);}
+.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-prev{width:100%;max-height:140px;object-fit:cover;border-radius:4px;margin-bottom:8px;display:none;}
+.upload-lbl{font-size:12px;color:var(--ink-faint);line-height:1.6;}
+.upload-lbl span{color:var(--accent);}
+.url-row{display:flex;gap:8px;}
+.url-row input{flex:1;}
+.btn-prev{padding:9px 12px;border:1px solid var(--border);background:var(--paper-warm);border-radius:4px;font-size:12px;cursor:pointer;color:var(--ink-soft);font-family:inherit;white-space:nowrap;transition:all .15s;}
+.btn-prev:hover{border-color:var(--accent);color:var(--accent);}
+#imgUrlPrev{width:100%;max-height:120px;object-fit:cover;border-radius:4px;margin-top:8px;display:none;border:1px solid var(--border);}
+
+/* FIELD MANAGER */
+.field-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.field-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper-warm);border-radius:4px;border:1px solid var(--border);}
+.field-item-name{flex:1;font-size:13px;color:var(--ink);}
+.field-item-type{font-size:11px;color:var(--ink-faint);padding:2px 8px;border:1px solid var(--border);border-radius:10px;}
+.field-item-lock{font-size:10px;color:var(--ink-faint);padding:2px 8px;}
+.add-field-row{display:flex;gap:8px;align-items:flex-end;}
+.add-field-row input,.add-field-row select{flex:1;padding:9px 11px;border:1px solid var(--border);background:var(--paper-warm);border-radius:4px;font-family:inherit;font-size:13px;color:var(--ink);outline:none;appearance:none;}
+.add-field-row input:focus,.add-field-row select:focus{border-color:var(--accent);}
+.btn-add-field{padding:9px 16px;background:var(--ink);color:var(--paper);border:none;border-radius:4px;font-family:inherit;font-size:12px;cursor:pointer;white-space:nowrap;transition:background .15s;}
+.btn-add-field:hover{background:var(--accent);}
+
+/* APPEARANCE */
+.appear-section{margin-bottom:24px;}
+.appear-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;}
+.color-row{display:flex;gap:8px;flex-wrap:wrap;}
+.color-chip{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s;}
+.color-chip:hover{transform:scale(1.15);}
+.color-chip.active{border-color:var(--ink);}
+.col-btns{display:flex;gap:0;}
+.col-btn{flex:1;padding:8px;border:1px solid var(--border);background:transparent;font-family:inherit;font-size:12px;cursor:pointer;color:var(--ink-soft);transition:all .15s;}
+.col-btn:first-child{border-radius:4px 0 0 4px;}
+.col-btn:last-child{border-radius:0 4px 4px 0;border-left:none;}
+.col-btn+.col-btn{border-left:none;}
+.col-btn.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+
+/* DETAIL */
+.detail-cover{width:100%;max-height:220px;object-fit:cover;display:block;}
+.detail-cover-ph{width:100%;height:100px;background:var(--paper-deep);display:flex;align-items:center;justify-content:center;font-size:44px;}
+.detail-hero{padding:26px 30px 20px;border-bottom:1px solid var(--border);display:flex;gap:16px;align-items:flex-start;}
+.detail-avatar{width:52px;height:52px;border-radius:50%;background:var(--paper-deep);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden;}
+.detail-avatar img{width:100%;height:100%;object-fit:cover;}
+.detail-info{flex:1;}
+.detail-info h2{font-family:'DM Serif Display',serif;font-size:21px;font-weight:400;margin-bottom:3px;}
+.detail-info .dhandle{font-size:12px;color:var(--ink-faint);letter-spacing:.07em;margin-bottom:8px;}
+.detail-link-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--accent);text-decoration:none;border:1px solid var(--accent-soft);border-radius:3px;padding:4px 11px;transition:all .15s;margin-top:6px;}
+.detail-link-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.detail-body{padding:22px 30px 30px;}
+.detail-sec{margin-bottom:20px;}
+.detail-sec-lbl{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px;}
+.detail-sec-txt{font-size:13px;line-height:1.85;color:var(--ink-soft);}
+.detail-hook{background:var(--paper-warm);border-left:3px solid var(--accent);padding:11px 15px;font-size:13px;line-height:1.8;color:var(--ink-soft);font-style:italic;border-radius:0 4px 4px 0;}
+.detail-foot{padding:14px 30px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+
+/* SECTION DIVIDER */
+.modal-section-title{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);padding:12px 0 6px;border-top:1px solid var(--border);margin-top:4px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:var(--paper);padding:9px 22px;border-radius:4px;font-size:12px;letter-spacing:.08em;transition:transform .3s;z-index:500;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* PASSWORD CHANGE */
+.pw-info{font-size:12px;color:var(--ink-faint);margin-bottom:14px;line-height:1.7;}
+
+@media(max-width:700px){
+  :root{--cols:1;}
+  header{padding:24px 20px 18px;}
+  .toolbar{padding:12px 20px;}
+  .count-bar{padding:8px 20px;}
+  .grid{background:var(--paper);}
+  .card{border-bottom:1px solid var(--border);}
+  .form-2{grid-template-columns:1fr;}
+  .modal-body,.detail-body,.detail-hero,.detail-foot,.modal-foot{padding-left:18px;padding-right:18px;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen">
+  <div class="lock-box">
+    <h1>靈感 <em>Vault</em></h1>
+    <p>INSPIRATION DATABASE</p>
+    <input class="lock-input" type="password" id="pwInput" placeholder="••••••" onkeydown="if(event.key==='Enter')unlock()">
+    <button class="lock-btn" onclick="unlock()">進入</button>
+    <div class="lock-error" id="lockError"></div>
+    <div class="lock-hint">第一次使用請直接按進入設定密碼</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="mainApp" style="display:none">
+
+<header>
+  <div class="header-left">
+    <h1>靈感 <em>Vault</em></h1>
+    <p class="subtitle">欣賞的帳號 · 作品 · 觀察筆記</p>
+  </div>
+  <div class="header-btns">
+    <button class="btn-ghost" onclick="openAppear()">🎨 外觀</button>
+    <button class="btn-ghost" onclick="openFields()">⚙ 欄位</button>
+    <button class="btn-ghost" onclick="openPwChange()">🔒 密碼</button>
+    <button class="btn-primary" onclick="openAdd()">＋ 新增</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="搜尋帳號、標籤、筆記⋯" oninput="render()">
+  </div>
+  <div class="filter-tags" id="filterTags"></div>
+</div>
+
+<div class="count-bar" id="countBar"></div>
+<div class="grid" id="grid"></div>
+
+</div><!-- end mainApp -->
+
+<!-- FORM MODAL -->
+<div class="overlay" id="formOverlay" onclick="bgClose(event,'formOverlay')">
+  <div class="modal-box md" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2 id="formTitle">新增帳號</h2>
+      <button class="btn-icon" onclick="closeModal('formOverlay')">✕</button>
+    </div>
+    <div class="modal-body" id="formBody"></div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeModal('formOverlay')">取消</button>
+      <button class="btn-save" onclick="saveEntry()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailOverlay" onclick="bgClose(event,'detailOverlay')">
+  <div class="modal-box lg" onclick="event.stopPropagation()">
+    <div id="detailCover"></div>
+    <div class="detail-hero" id="detailHero"></div>
+    <div class="detail-body" id="detailBody"></div>
+    <div class="detail-foot">
+      <button class="btn-cancel" onclick="editFromDetail()">✎ 編輯</button>
+      <button class="btn-cancel" onclick="closeModal('detailOverlay')">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- FIELD MANAGER -->
+<div class="overlay" id="fieldOverlay" onclick="bgClose(event,'fieldOverlay')">
+  <div class="modal-box sm" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2>欄位管理</h2>
+      <button class="btn-icon" onclick="closeModal('fieldOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-list" id="fieldList"></div>
+      <div class="add-field-row">
+        <input type="text" id="newFieldName" placeholder="新欄位名稱">
+        <select id="newFieldType">
+          <option value="text">單行文字</option>
+          <option value="textarea">多行文字</option>
+          <option value="tags">標籤</option>
+        </select>
+        <button class="btn-add-field" onclick="addField()">新增</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-save" onclick="closeModal('fieldOverlay');render()">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- APPEARANCE -->
+<div class="overlay" id="appearOverlay" onclick="bgClose(event,'appearOverlay')">
+  <div class="modal-box sm" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2>外觀設定</h2>
+      <button class="btn-icon" onclick="closeModal('appearOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="appear-section">
+        <div class="appear-label">主色調</div>
+        <div class="color-row" id="colorRow"></div>
+      </div>
+      <div class="appear-section">
+        <div class="appear-label">背景紙色</div>
+        <div class="color-row" id="paperRow"></div>
+      </div>
+      <div class="appear-section">
+        <div class="appear-label">每行欄數</div>
+        <div class="col-btns">
+          <button class="col-btn" onclick="setCols(1,this)">1 欄</button>
+          <button class="col-btn" onclick="setCols(2,this)">2 欄</button>
+          <button class="col-btn active" onclick="setCols(3,this)">3 欄</button>
+          <button class="col-btn" onclick="setCols(4,this)">4 欄</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-save" onclick="closeModal('appearOverlay')">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- PASSWORD CHANGE -->
+<div class="overlay" id="pwOverlay" onclick="bgClose(event,'pwOverlay')">
+  <div class="modal-box sm" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2>變更密碼</h2>
+      <button class="btn-icon" onclick="closeModal('pwOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="pw-info">設定一組只有你知道的密碼。下次開啟網頁時需要輸入才能進入。</p>
+      <div class="form-row">
+        <label>新密碼</label>
+        <input type="password" id="pw1" placeholder="請輸入新密碼">
+      </div>
+      <div class="form-row">
+        <label>確認密碼</label>
+        <input type="password" id="pw2" placeholder="再輸入一次">
+      </div>
+      <div class="lock-error" id="pwError"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeModal('pwOverlay')">取消</button>
+      <button class="btn-save" onclick="changePassword()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ STORAGE KEYS ═══
+const K_DB      = 'vault_db_v3';
+const K_FIELDS  = 'vault_fields_v3';
+const K_APPEAR  = 'vault_appear_v3';
+const K_PW      = 'vault_pw_v1';
+
+// ═══ FIXED FIELDS (不可刪除) ═══
+const FIXED_FIELDS = [
+  {key:'name',     label:'帳號名稱',   type:'text',     fixed:true},
+  {key:'handle',   label:'Handle',     type:'text',     fixed:true},
+  {key:'platform', label:'平台',       type:'select',   fixed:true},
+  {key:'category', label:'類型',       type:'text',     fixed:true},
+  {key:'url',      label:'帳號連結',   type:'text',     fixed:true},
+  {key:'tags',     label:'標籤',       type:'tags',     fixed:true},
+  {key:'note',     label:'觀察筆記',   type:'textarea', fixed:true},
+  {key:'hook',     label:'我被吸引的點', type:'textarea', fixed:true},
+];
+
+// ═══ DEFAULTS ═══
+const SEED_DB = [{
+  id:1, name:'Petsuko', handle:'@pjc6132', platform:'Instagram',
+  category:'創作者', url:'https://www.instagram.com/pjc6132/',
+  tags:['手作黏土','Boodo','日系','溫度感','立體造型'],
+  note:'岐阜出身的上班族創作者，用烤箱黏土製作原創角色「Boodo」——困眉狗，素材感強烈，有個性有靈魂。作品在東京獨立藝廊與選物店販售，近期推出扭蛋商品化。',
+  hook:'不是因為精緻，而是因為有靈魂。每件作品都像是有自己的情緒。',
+  imgData:'', imgUrl:'', emoji:'🎨', createdAt:Date.now()
+}];
+
+const ACCENT_PRESETS = [
+  {name:'琥珀', val:'#c17f4a'},
+  {name:'墨綠', val:'#4a7c6a'},
+  {name:'鐵藍', val:'#3d6080'},
+  {name:'煙紫', val:'#7a5fa0'},
+  {name:'緋紅', val:'#a03d3d'},
+  {name:'炭黑', val:'#3a3a3a'},
+];
+const PAPER_PRESETS = [
+  {name:'米白', val:'#f7f4ef'},
+  {name:'象牙', val:'#f4f0e6'},
+  {name:'淺灰', val:'#f3f3f3'},
+  {name:'暖灰', val:'#eeebe4'},
+  {name:'深紙', val:'#e8e3da'},
+];
+
+// ═══ STATE ═══
+let db = [], customFields = [], appear = {}, editingId = null, viewingId = null;
+let activeFilter = 'all', imgTab = 'file', fileData = '';
+
+// ═══ LOCK / PASSWORD ═══
+function unlock() {
+  const pw = document.getElementById('pwInput').value;
+  const saved = localStorage.getItem(K_PW);
+  if (!saved) {
+    // first time — set password
+    if (!pw) { showLockError('請設定一組密碼後再進入'); return; }
+    localStorage.setItem(K_PW, btoa(pw));
+    enterApp();
+  } else {
+    if (btoa(pw) === saved) { enterApp(); }
+    else { showLockError('密碼錯誤，請再試一次'); }
+  }
+}
+function showLockError(msg) {
+  document.getElementById('lockError').textContent = msg;
+  setTimeout(()=>document.getElementById('lockError').textContent='', 2500);
+}
+function enterApp() {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+}
+
+function openPwChange() { openModal('pwOverlay'); }
+function changePassword() {
+  const p1 = document.getElementById('pw1').value;
+  const p2 = document.getElementById('pw2').value;
+  const err = document.getElementById('pwError');
+  if (!p1) { err.textContent = '請輸入新密碼'; return; }
+  if (p1 !== p2) { err.textContent = '兩次密碼不一致'; return; }
+  localStorage.setItem(K_PW, btoa(p1));
+  err.textContent = '';
+  closeModal('pwOverlay');
+  showToast('密碼已更新');
+}
+
+// ═══ LOAD / SAVE ═══
+function loadAll() {
+  try { db = JSON.parse(localStorage.getItem(K_DB)) || [...SEED_DB]; } catch { db = [...SEED_DB]; }
+  try { customFields = JSON.parse(localStorage.getItem(K_FIELDS)) || []; } catch { customFields = []; }
+  try { appear = JSON.parse(localStorage.getItem(K_APPEAR)) || {}; } catch { appear = {}; }
+  applyAppear();
+}
+function saveDB()     { localStorage.setItem(K_DB, JSON.stringify(db)); }
+function saveFields() { localStorage.setItem(K_FIELDS, JSON.stringify(customFields)); }
+function saveAppear() { localStorage.setItem(K_APPEAR, JSON.stringify(appear)); }
+
+function allFields() { return [...FIXED_FIELDS, ...customFields]; }
+
+// ═══ APPEARANCE ═══
+function applyAppear() {
+  const r = document.documentElement.style;
+  if (appear.accent) {
+    r.setProperty('--accent', appear.accent);
+    r.setProperty('--accent-soft', appear.accent+'66');
+  }
+  if (appear.paper) {
+    r.setProperty('--paper', appear.paper);
+  }
+  if (appear.cols) {
+    r.setProperty('--cols', appear.cols);
+  }
+}
+
+function openAppear() {
+  // colors
+  const cr = document.getElementById('colorRow');
+  cr.innerHTML = ACCENT_PRESETS.map(c =>
+    `<div class="color-chip ${appear.accent===c.val?'active':''}" style="background:${c.val}" title="${c.name}" onclick="setAccent('${c.val}',this)"></div>`
+  ).join('') + `<input type="color" value="${appear.accent||'#c17f4a'}" style="width:32px;height:32px;border-radius:50%;border:2px solid var(--border);cursor:pointer;padding:0" oninput="setAccent(this.value,null)">`;
+
+  const pr = document.getElementById('paperRow');
+  pr.innerHTML = PAPER_PRESETS.map(c =>
+    `<div class="color-chip ${appear.paper===c.val?'active':''}" style="background:${c.val};border:1px solid var(--border)" title="${c.name}" onclick="setPaper('${c.val}',this)"></div>`
+  ).join('');
+
+  // cols
+  document.querySelectorAll('.col-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.textContent) === (appear.cols||3));
+  });
+
+  openModal('appearOverlay');
+}
+function setAccent(val, el) {
+  appear.accent = val;
+  document.documentElement.style.setProperty('--accent', val);
+  document.documentElement.style.setProperty('--accent-soft', val+'66');
+  document.querySelectorAll('#colorRow .color-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  saveAppear();
+}
+function setPaper(val, el) {
+  appear.paper = val;
+  document.documentElement.style.setProperty('--paper', val);
+  document.querySelectorAll('#paperRow .color-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  saveAppear();
+}
+function setCols(n, el) {
+  appear.cols = n;
+  document.documentElement.style.setProperty('--cols', n);
+  document.querySelectorAll('.col-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  saveAppear();
+}
+
+// ═══ FIELD MANAGER ═══
+function openFields() {
+  renderFieldList();
+  openModal('fieldOverlay');
+}
+function renderFieldList() {
+  const el = document.getElementById('fieldList');
+  const rows = [
+    ...FIXED_FIELDS.map(f => `<div class="field-item"><span class="field-item-name">${f.label}</span><span class="field-item-type">${f.type}</span><span class="field-item-lock">🔒 固定</span></div>`),
+    ...customFields.map((f,i) => `<div class="field-item"><span class="field-item-name">${f.label}</span><span class="field-item-type">${f.type==='textarea'?'多行':f.type==='tags'?'標籤':'單行'}</span><button class="btn-icon" onclick="removeField(${i})" style="margin-left:auto">✕</button></div>`)
+  ];
+  el.innerHTML = rows.join('') || '<p style="font-size:12px;color:var(--ink-faint)">尚無自訂欄位</p>';
+}
+function addField() {
+  const name = document.getElementById('newFieldName').value.trim();
+  if (!name) { showToast('請輸入欄位名稱'); return; }
+  const type = document.getElementById('newFieldType').value;
+  const key = 'cf_' + Date.now();
+  customFields.push({key, label:name, type, fixed:false});
+  saveFields();
+  document.getElementById('newFieldName').value = '';
+  renderFieldList();
+  showToast('已新增欄位：' + name);
+}
+function removeField(i) {
+  if (!confirm(`確定要刪除「${customFields[i].label}」欄位嗎？\n此欄位在所有帳號的資料也會消失。`)) return;
+  customFields.splice(i, 1);
+  saveFields();
+  renderFieldList();
+  showToast('已刪除欄位');
+}
+
+// ═══ IMAGE ═══
+function switchImgTab(tab, el) {
+  imgTab = tab;
+  document.querySelectorAll('.img-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('imgFilePanel').style.display = tab==='file' ? 'block' : 'none';
+  document.getElementById('imgUrlPanel').style.display  = tab==='url'  ? 'block' : 'none';
+}
+function handleFile(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    fileData = ev.target.result;
+    const p = document.getElementById('filePrev');
+    p.src = fileData; p.style.display = 'block';
+    document.querySelector('#imgFilePanel .upload-lbl').style.display = 'none';
+  };
+  r.readAsDataURL(file);
+}
+function previewUrl() {
+  const url = document.getElementById('f_imgUrl').value.trim();
+  const p = document.getElementById('imgUrlPrev');
+  if (!url) return;
+  p.src = url; p.style.display = 'block';
+  p.onerror = () => { p.style.display='none'; showToast('圖片網址無法載入'); };
+}
+function getImg(e) { return e.imgData || e.imgUrl || ''; }
+
+// ═══ FORM ═══
+function buildForm(entry) {
+  const e = entry || {};
+  let html = `
+  <div class="form-row">
+    <label>封面圖片</label>
+    <div class="img-tabs">
+      <button class="img-tab active" onclick="switchImgTab('file',this)">上傳檔案</button>
+      <button class="img-tab" onclick="switchImgTab('url',this)">貼入網址</button>
+    </div>
+    <div id="imgFilePanel">
+      <div class="upload-area" onclick="document.getElementById('f_imgFile').click()">
+        <img id="filePrev" class="upload-prev" src="" alt="">
+        <div class="upload-lbl"><span>點擊上傳圖片</span><br>JPG / PNG / WEBP</div>
+        <input type="file" id="f_imgFile" accept="image/*" onchange="handleFile(event)">
+      </div>
+    </div>
+    <div id="imgUrlPanel" style="display:none">
+      <div class="url-row">
+        <input type="text" id="f_imgUrl" placeholder="https://example.com/image.jpg" value="${e.imgUrl||''}">
+        <button class="btn-prev" onclick="previewUrl()">預覽</button>
+      </div>
+      <img id="imgUrlPrev" src="" alt="">
+    </div>
+  </div>
+
+  <div class="form-2">
+    <div class="form-row">
+      <label>帳號名稱 *</label>
+      <input type="text" id="f_name" placeholder="Petsuko" value="${esc(e.name||'')}">
+    </div>
+    <div class="form-row">
+      <label>Handle</label>
+      <input type="text" id="f_handle" placeholder="@pjc6132" value="${esc(e.handle||'')}">
+    </div>
+  </div>
+
+  <div class="form-2">
+    <div class="form-row">
+      <label>平台</label>
+      <select id="f_platform">
+        ${['Instagram','Threads','X / Twitter','YouTube','TikTok','部落格','其他'].map(p=>`<option ${e.platform===p?'selected':''}>${p}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>類型</label>
+      <input type="text" id="f_category" placeholder="創作者、攝影、選物⋯" value="${esc(e.category||'')}">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <label>帳號連結</label>
+    <input type="text" id="f_url" placeholder="https://www.instagram.com/pjc6132/" value="${esc(e.url||'')}">
+  </div>
+
+  <div class="form-row">
+    <label>標籤（逗號分隔）</label>
+    <input type="text" id="f_tags" placeholder="手作、日系、溫度感" value="${esc((e.tags||[]).join('、'))}">
+  </div>
+
+  <div class="form-row">
+    <label>觀察筆記</label>
+    <textarea id="f_note" placeholder="風格、內容邏輯、經營方式⋯">${esc(e.note||'')}</textarea>
+  </div>
+
+  <div class="form-row">
+    <label>我被吸引的點</label>
+    <textarea id="f_hook" placeholder="為什麼這個帳號讓你停下來？" style="min-height:56px">${esc(e.hook||'')}</textarea>
+  </div>`;
+
+  // custom fields
+  if (customFields.length) {
+    html += `<div class="modal-section-title">自訂欄位</div>`;
+    customFields.forEach(f => {
+      const val = esc((e[f.key]||''));
+      if (f.type === 'textarea') {
+        html += `<div class="form-row"><label>${f.label}</label><textarea id="cf_${f.key}" placeholder="${f.label}">${val}</textarea></div>`;
+      } else if (f.type === 'tags') {
+        html += `<div class="form-row"><label>${f.label}（逗號分隔）</label><input type="text" id="cf_${f.key}" placeholder="${f.label}" value="${val}"></div>`;
+      } else {
+        html += `<div class="form-row"><label>${f.label}</label><input type="text" id="cf_${f.key}" placeholder="${f.label}" value="${val}"></div>`;
+      }
+    });
+  }
+
+  return html;
+}
+
+function openAdd() {
+  editingId = null; fileData = '';
+  document.getElementById('formTitle').textContent = '新增帳號';
+  document.getElementById('formBody').innerHTML = buildForm(null);
+  imgTab = 'file';
+  openModal('formOverlay');
+}
+
+function openEdit(id) {
+  const e = db.find(x=>x.id===id); if (!e) return;
+  editingId = id; fileData = e.imgData || '';
+  document.getElementById('formTitle').textContent = '編輯帳號';
+  document.getElementById('formBody').innerHTML = buildForm(e);
+  // restore image
+  if (e.imgData) {
+    const p = document.getElementById('filePrev');
+    p.src = e.imgData; p.style.display = 'block';
+    document.querySelector('#imgFilePanel .upload-lbl').style.display = 'none';
+    imgTab = 'file';
+  } else if (e.imgUrl) {
+    switchImgTab('url', document.querySelectorAll('.img-tab')[1]);
+    document.getElementById('f_imgUrl').value = e.imgUrl;
+    const p = document.getElementById('imgUrlPrev');
+    p.src = e.imgUrl; p.style.display = 'block';
+  }
+  closeModal('detailOverlay');
+  openModal('formOverlay');
+}
+
+function editFromDetail() { if (viewingId) openEdit(viewingId); }
+
+const EMOJI = {'旅行':'✈️','咖啡廳':'☕','攝影':'📷','選物':'🪴','品牌':'◼','美食':'🍜','生活風格':'🌿','設計':'✦','日本文化':'⛩','創作者':'🎨'};
+
+function saveEntry() {
+  const name = val('f_name'); if (!name) { showToast('請填入帳號名稱'); return; }
+  const tags = val('f_tags').split(/[,，、]/).map(t=>t.trim()).filter(Boolean);
+  const cat  = val('f_category');
+  const imgData = imgTab==='file' ? fileData : '';
+  const imgUrl  = imgTab==='url'  ? val('f_imgUrl') : '';
+
+  const entry = {
+    id: editingId || Date.now(),
+    name, handle:val('f_handle'), platform:val('f_platform'),
+    category:cat, url:val('f_url'), tags, imgData, imgUrl,
+    note:val('f_note'), hook:val('f_hook'),
+    emoji: EMOJI[cat]||'✦',
+    createdAt: editingId ? (db.find(x=>x.id===editingId)?.createdAt||Date.now()) : Date.now()
+  };
+
+  // custom fields
+  customFields.forEach(f => {
+    const el = document.getElementById('cf_'+f.key);
+    if (el) entry[f.key] = el.value.trim();
+  });
+
+  if (editingId) { const i=db.findIndex(x=>x.id===editingId); db[i]=entry; showToast('已更新'); }
+  else           { db.unshift(entry); showToast('已新增'); }
+  saveDB(); closeModal('formOverlay'); render();
+}
+
+function deleteEntry(id) {
+  if (!confirm('確定要刪除這個帳號嗎？')) return;
+  db = db.filter(x=>x.id!==id); saveDB(); render(); showToast('已刪除');
+}
+
+// ═══ DETAIL ═══
+function openDetail(id) {
+  const e = db.find(x=>x.id===id); if (!e) return;
+  viewingId = id;
+  const imgSrc = getImg(e);
+  document.getElementById('detailCover').innerHTML = imgSrc
+    ? `<img class="detail-cover" src="${imgSrc}" alt="${esc(e.name)}">`
+    : `<div class="detail-cover-ph">${e.emoji||'✦'}</div>`;
+
+  document.getElementById('detailHero').innerHTML = `
+    <div class="detail-avatar">${e.emoji||'✦'}</div>
+    <div class="detail-info">
+      <h2>${esc(e.name)}</h2>
+      <div class="dhandle">${esc(e.handle)} · ${esc(e.platform)}${e.category?' · '+esc(e.category):''}</div>
+      <div class="card-tags">${(e.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+      ${e.url?`<a class="detail-link-btn" href="${e.url}" target="_blank" rel="noopener">↗ 前往帳號</a>`:''}
+    </div>
+    <button class="btn-icon" onclick="closeModal('detailOverlay')" style="margin-left:auto;flex-shrink:0">✕</button>`;
+
+  let body = '';
+  if (e.note) body += sec('觀察筆記', `<div class="detail-sec-txt">${esc(e.note)}</div>`);
+  if (e.hook) body += sec('我被吸引的點', `<div class="detail-hook">${esc(e.hook)}</div>`);
+  customFields.forEach(f => {
+    if (e[f.key]) body += sec(f.label, `<div class="detail-sec-txt">${esc(e[f.key])}</div>`);
+  });
+  document.getElementById('detailBody').innerHTML = body || '<p style="font-size:12px;color:var(--ink-faint)">尚無筆記</p>';
+  openModal('detailOverlay');
+}
+function sec(label, content) {
+  return `<div class="detail-sec"><div class="detail-sec-lbl">${label}</div>${content}</div>`;
+}
+
+// ═══ FILTER & RENDER ═══
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  return db.filter(e => {
+    const mf = activeFilter==='all' || e.category===activeFilter;
+    if (!q) return mf;
+    const hay = [e.name,e.handle,e.note,e.hook,e.category,...(e.tags||[]),...customFields.map(f=>e[f.key]||'')].join(' ').toLowerCase();
+    return mf && hay.includes(q);
+  });
+}
+function setFilter(v, el) {
+  activeFilter = v;
+  document.querySelectorAll('.filter-tag').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active'); render();
+}
+function rebuildFilters() {
+  const cats = [...new Set(db.map(e=>e.category).filter(Boolean))].sort();
+  const w = document.getElementById('filterTags');
+  w.innerHTML = `<button class="filter-tag ${activeFilter==='all'?'active':''}" onclick="setFilter('all',this)">全部</button>`;
+  cats.forEach(c => {
+    w.innerHTML += `<button class="filter-tag ${activeFilter===c?'active':''}" onclick="setFilter(${JSON.stringify(c)},this)">${esc(c)}</button>`;
+  });
+}
+function trunc(s,n) { return s&&s.length>n?s.slice(0,n)+'⋯':s||''; }
+
+function render() {
+  rebuildFilters();
+  const items = getFiltered();
+  document.getElementById('countBar').textContent = `${items.length} 個帳號`;
+  const grid = document.getElementById('grid');
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty"><p>🌿</p><p>還沒有符合的帳號</p></div>`; return;
+  }
+  grid.innerHTML = items.map(e => {
+    const imgSrc = getImg(e);
+    const imgBlock = imgSrc
+      ? `<img class="card-img" src="${imgSrc}" alt="${esc(e.name)}" onerror="this.style.display='none'">`
+      : `<div class="card-img-placeholder">${e.emoji||'✦'}</div>`;
+    const customBlock = customFields.filter(f=>e[f.key]).slice(0,1).map(f=>`
+      <div style="margin-bottom:8px">
+        <div class="card-field-label">${f.label}</div>
+        <div class="card-field">${trunc(e[f.key],60)}</div>
+      </div>`).join('');
+    return `
+    <div class="card" onclick="openDetail(${e.id})">
+      <div class="card-actions">
+        <button class="btn-icon" onclick="event.stopPropagation();openEdit(${e.id})">✎</button>
+        <button class="btn-icon" onclick="event.stopPropagation();deleteEntry(${e.id})">✕</button>
+      </div>
+      ${imgBlock}
+      <div class="card-body">
+        <div class="card-header">
+          <div class="avatar">${e.emoji||'✦'}</div>
+          <div>
+            <div class="card-name">${esc(e.name)}</div>
+            <div class="card-handle">${esc(e.handle||'')}</div>
+            <span class="card-platform">${esc(e.platform||'')}${e.category?' · '+esc(e.category):''}</span>
+          </div>
+        </div>
+        ${e.note?`<div class="card-field">${trunc(e.note,75)}</div>`:''}
+        ${customBlock}
+        <div class="card-tags">${(e.tags||[]).slice(0,5).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+        ${e.hook?`<div class="card-hook">${trunc(e.hook,58)}</div>`:''}
+        ${e.url?`<a class="card-link-btn" href="${e.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ 前往帳號</a>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══ UTILS ═══
+function val(id) { const el=document.getElementById(id); return el?(el.value||'').trim():''; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function bgClose(e,id)  { if(e.target===document.getElementById(id)) closeModal(id); }
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') ['formOverlay','detailOverlay','fieldOverlay','appearOverlay','pwOverlay'].forEach(closeModal);
+});
+
+// ═══ INIT ═══
+loadAll();
+// pw check will happen on lock screen; mainApp stays hidden until unlock
+</script>
+</body>
+</html>
